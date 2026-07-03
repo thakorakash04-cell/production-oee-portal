@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OEE Portal - Production Monitoring</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #f5f7fa; }
+.header { background: #1e3a8a; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+.container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+.kpi-card { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+.kpi-value { font-size: 2.5rem; font-weight: bold; color: #1e3a8a; margin: 0.5rem 0; }
+.kpi-label { color: #64748b; font-size: 0.875rem; text-transform: uppercase; }
+.chart-box { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 1.5rem; }
+.form-group { margin-bottom: 1rem; }
+label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: #334155; }
+input, select, textarea { width: 100%; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 1rem; }
+button { background: #1e3a8a; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 6px; cursor: pointer; font-size: 1rem; }
+button:hover { background: #1e40af; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 0.75rem; border-bottom: 1px solid #e2e8f0; }
+th { background: #f8fafc; color: #475569; font-weight: 600; }
+.nav { display: flex; gap: 1rem; }
+.nav button { background: transparent; color: white; padding: 0.5rem 1rem; }
+.nav button:hover { background: rgba(255,255,255,0.1); }
+.view { display: none; }
+.view.active { display: block; }
+.oee-good { color: #10b981; }
+.oee-warning { color: #f59e0b; }
+.oee-poor { color: #ef4444; }
+</style>
+</head>
+<body>
+<div class="header">
+<h1>Production Monitoring & OEE Portal</h1>
+<div class="nav">
+<button onclick="showView('dashboard')">Dashboard</button>
+<button onclick="showView('entry')">Daily Entry</button>
+<button onclick="showView('planning')">Planning</button>
+</div>
+</div>
+<div class="container">
+<div id="dashboard" class="view active">
+<div class="kpi-grid">
+<div class="kpi-card"><div class="kpi-label">OEE</div><div class="kpi-value" id="oee">--</div></div>
+<div class="kpi-card"><div class="kpi-label">Availability</div><div class="kpi-value" id="avail">--</div></div>
+<div class="kpi-card"><div class="kpi-label">Performance</div><div class="kpi-value" id="perf">--</div></div>
+<div class="kpi-card"><div class="kpi-label">Quality</div><div class="kpi-value" id="quality">--</div></div>
+<div class="kpi-card"><div class="kpi-label">Production Actual</div><div class="kpi-value" id="actual">--</div></div>
+<div class="kpi-card"><div class="kpi-label">Attainment %</div><div class="kpi-value" id="attain">--</div></div>
+</div>
+<div class="chart-box"><canvas id="trendChart" width="800" height="300"></canvas></div>
+<div class="chart-box"><h3 style="margin-bottom:1rem">Recent Production Entries</h3><table id="prodTable"><thead><tr><th>Date</th><th>Shift</th><th>Product</th><th>Planned</th><th>Actual</th><th>Good</th><th>Scrap</th></tr></thead><tbody></tbody></table></div>
+</div>
+<div id="entry" class="view">
+<div class="chart-box">
+<h2 style="margin-bottom:1.5rem">Daily Production Entry</h2>
+<div class="form-group"><label>Date</label><input type="date" id="entryDate"></div>
+<div class="form-group"><label>Shift</label><select id="entryShift"><option>Shift A</option><option>Shift B</option><option>Shift C</option></select></div>
+<div class="form-group"><label>Product</label><input type="text" id="entryProduct"></div>
+<div class="form-group"><label>Planned Hours</label><input type="number" id="entryPlannedHours" value="8"></div>
+<div class="form-group"><label>Actual Hours</label><input type="number" id="entryActualHours"></div>
+<div class="form-group"><label>Planned Production</label><input type="number" id="entryPlannedProd"></div>
+<div class="form-group"><label>Actual Production</label><input type="number" id="entryActualProd"></div>
+<div class="form-group"><label>Good Pieces</label><input type="number" id="entryGood"></div>
+<div class="form-group"><label>Scrap</label><input type="number" id="entryScrap" value="0"></div>
+<div class="form-group"><label>Manpower Planned</label><input type="number" id="entryMpP"></div>
+<div class="form-group"><label>Manpower Actual</label><input type="number" id="entryMpA"></div>
+<div class="form-group"><label>Remarks</label><textarea id="entryRemarks" rows="3"></textarea></div>
+<button onclick="submitEntry()">Submit Entry</button>
+</div>
+</div>
+<div id="planning" class="view">
+<div class="chart-box"><h2>Monthly Planning</h2><p style="color:#64748b;margin-top:1rem">Planning module - Add products, set cycle times, create schedules</p></div>
+</div>
+</div>
+<script>
+const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8000/api/v1' : '/api/v1';
+function showView(v) { document.querySelectorAll('.view').forEach(el => el.classList.remove('active')); document.getElementById(v).classList.add('active'); if (v === 'dashboard') loadDashboard(); }
+async function loadDashboard() {
+try {
+const res = await fetch(`${API_BASE}/dashboard/summary`);
+const data = await res.json();
+document.getElementById('oee').textContent = data.oee.oee + '%';
+document.getElementById('avail').textContent = data.oee.availability + '%';
+document.getElementById('perf').textContent = data.oee.performance + '%';
+document.getElementById('quality').textContent = data.oee.quality + '%';
+document.getElementById('actual').textContent = data.production.actual;
+document.getElementById('attain').textContent = data.production.attainment_pct + '%';
+const entries = await (await fetch(`${API_BASE}/production/`)).json();
+const tbody = document.querySelector('#prodTable tbody');
+tbody.innerHTML = entries.slice(0,10).map(e => `<tr><td>${e.entry_date}</td><td>${e.shift_id}</td><td>${e.product_id}</td><td>${e.planned_production}</td><td>${e.actual_production}</td><td>${e.good_pieces}</td><td>${e.scrap}</td></tr>`).join('');
+} catch(err) { console.error(err); document.getElementById('oee').textContent = 'N/A'; }
+}
+async function submitEntry() {
+const entry = { entry_date: document.getElementById('entryDate').value, shift_id: 1, product_id: 1, workstation_id: 1, planned_hours: +document.getElementById('entryPlannedHours').value, actual_hours: +document.getElementById('entryActualHours').value, planned_production: +document.getElementById('entryPlannedProd').value, actual_production: +document.getElementById('entryActualProd').value, good_pieces: +document.getElementById('entryGood').value, scrap: +document.getElementById('entryScrap').value, manpower_planned: +document.getElementById('entryMpP').value, manpower_actual: +document.getElementById('entryMpA').value, remarks: document.getElementById('entryRemarks').value, downtime_logs: [] };
+try { const res = await fetch(`${API_BASE}/production/`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(entry) }); if (res.ok) { alert('Entry saved!'); showView('dashboard'); } else { alert('Error saving entry'); } } catch(err) { alert('Network error'); }
+}
+loadDashboard();
+</script>
+</body>
+</html>
