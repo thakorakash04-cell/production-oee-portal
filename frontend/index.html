@@ -137,7 +137,7 @@ th { background: #f8fafc; color: #475569; font-weight: 600; }
 </div>
 </div>
 <script>
-const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8000/api/v1' : '/api/v1';
+const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8000/api/v1' : 'https://oee-portal-api-production.up.railway.app/api/v1';
           
 function showView(v) {
   document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
