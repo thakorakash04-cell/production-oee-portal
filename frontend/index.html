@@ -138,7 +138,7 @@ th { background: #f8fafc; color: #475569; font-weight: 600; }
 </div>
 <script>
 const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8000/api/v1' : '/api/v1';
-function showView(v) { document.querySelectorAll('.view').forEach(el => el.classList.remove('active')); document.getElementById(v).classList.add('active'); if (v === 'dashboard') loadDashboard(); }
+function showView(v) { document.querySelectorAll('.view').forEach(el => el.classList.remove('active')); document.getElementById(v).classList.add('active'); if (v === 'dashboard') loadDashboard(); if (v === 'planning') loadPlanning(); }
 async function loadDashboard() {
           .form-section { background: white; margin: 20px 0; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .form-section h3 { color: #1e3a8a; margin-bottom: 15px; }
